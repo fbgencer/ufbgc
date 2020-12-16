@@ -13,11 +13,11 @@ add_library(ufbgc SHARED
 set_target_properties(ufbgc PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION 1
-    PUBLIC_HEADER include/ufbgc.h)
+    PUBLIC_HEADER src/ufbgc.h)
 
 configure_file(ufbgc.pc.in ufbgc.pc @ONLY)
 
-target_include_directories(ufbgc PUBLIC include)
+target_include_directories(ufbgc PUBLIC src)
 
 install(TARGETS ufbgc 
 LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
