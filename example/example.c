@@ -83,6 +83,8 @@ const char * val1[] = {"a1","a2","a3",};
 
 const int  vali[] = {100,200,300,500};
 
+const double  valdb[] = {1.1,1.2,1.3};
+
 ufbgc_test_parameters paramtest_param = {
     .no_iteration = 3,
     .parameters = {
@@ -95,6 +97,11 @@ ufbgc_test_parameters paramtest_param = {
             .value = vali
         },
         {
+            .key = "key-for-double",
+            .value = valdb
+        },
+
+        {
             .key = NULL,
             .value = NULL,
         }
@@ -105,16 +112,29 @@ ufbgc_test_parameters paramtest_param = {
 
 ufbgc_return_t parameter_test(ufbgc_test_parameters * parameters, ufbgc_args * uarg){
 
-    const char ** strarray = (const char **) ufbgc_get_param("def");
-    const char * str = (const char *)ufbgc_current_param(strarray,sizeof(const char *));
+    const char * str;
+    ufbgc_get_param(str,"def",const char **);
 
     ufbgc_assert(str != NULL);
 
-    printf("Got string '%s' ",str);
+    printf("Got string:'%s'\n",str);
 
-    const int * ia = (const int *) ufbgc_get_param("foo");
-    int * x = (int *)ufbgc_current_param(ia,sizeof(int));
-    printf("Got int :%d\n",*x);
+    int ia;
+    ufbgc_get_param(ia,"foo",const int *);
+    printf("Got int:%d\n",ia);
+
+
+    double db;
+    ufbgc_get_param(db,"key-for-double",const double *);
+    printf("Got double:%g\n",db);
+
+    
+
+    double * dx = (double *)ufbgc_get_parameter("key-for-double");
+    size_t it = 0;
+    get_current_test_iterator(&it);
+    printf("Double with iterator: %g\n",dx[it]);
+
 
     return UFBGC_OK;
 }
@@ -123,26 +143,30 @@ static const ufbgc_test_frame test_list[] = {
     {
         .fun_ptr = test2,
         .name = "test2",
-        .option = PASS_TEST,
+        .option = NO_OPTION,
+        .parameters = NULL,
+        .uarg = NULL,
     },
     {
         .fun_ptr = test1,
         .name = "test1",
-        .option = PASS_TEST,
+        .option = NO_OPTION,
         .parameters = NULL,
-        .uarg = test1_args
+        .uarg = test1_args,
     },
     {
         .fun_ptr = test3,
         .name = "test3",
         .option = PASS_TEST,
+        .parameters = NULL,
+        .uarg = NULL,
     },
     {
         .fun_ptr = parameter_test,
         .name = "parameter-test",
         .option = NO_OPTION,
         .parameters = &paramtest_param,
-        .uarg = NULL
+        .uarg = NULL,
     },
 
     NULL,

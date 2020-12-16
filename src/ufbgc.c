@@ -16,9 +16,7 @@ ufbgc_return_t ufbgc_start_test(const ufbgc_test_frame * const test_list){
 
     ufbgc_print_magenta("ufbgc - starting tests\n\n");
 
-    if(test_list == NULL){
-        return UFBGC_FAILED;
-    }
+    __ufbgc_internal_assert_(test_list != NULL,"Test frame pointer is NULL");
 
     const ufbgc_test_frame * tframe = test_list;
 
@@ -80,11 +78,18 @@ void * ufbgc_get_arg(const char * key){
             uarg++;
         }
     }
-
     return NULL;
 }
 
-void * ufbgc_get_param(const char * key){
+bool get_current_test_iterator(size_t * it){
+    if(current_test_frame.frame == NULL || it == NULL){
+        return false;
+    }
+
+    *it = current_test_frame.frame_iterator;
+}
+
+void * ufbgc_get_parameter(const char * key){
     if(current_test_frame.frame == NULL){
         return NULL;
     }
@@ -103,21 +108,4 @@ void * ufbgc_get_param(const char * key){
     current_test_frame.frame_iterateable = false;
 
     return NULL;
-}
-
-void * ufbgc_current_param(void * param_array, size_t block_size){
-    if(current_test_frame.frame == NULL || param_array == NULL){
-        return NULL;
-    }
-
-    // char * checkptr = (char*)param_array;
-    // checkptr += (block_size * (current_test_frame.frame_iterator+1) );
-    // if(checkptr == NULL){
-    //     //finish the iteration
-    //     current_test_frame.frame_iterateable = false;
-    //     printf("Finishing the next phase :)\n");
-    // }
-    char * ptr = (char*)param_array;
-    ptr += (block_size * current_test_frame.frame_iterator);
-    return ptr;
 }

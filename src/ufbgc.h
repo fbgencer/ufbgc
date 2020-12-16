@@ -35,7 +35,7 @@
 
 typedef enum {
     UFBGC_OK,
-    UFBGC_FAILED
+    UFBGC_FAIL
 }ufbgc_return_t;
 
 typedef enum {
@@ -91,7 +91,7 @@ typedef struct{
         ufbgc_print_black("  -->  %s failed @[",name);  \
         ufbgc_print_line(ANSI_COLOR_RED_UNDERLINE);     \
         ufbgc_print_black("]\n");                       \
-    }while(0)                                           \
+    }while(0)
 
 
 #define ufbgc_print_pass(name,format,...)               \
@@ -100,7 +100,7 @@ typedef struct{
         ufbgc_print_green("  -->  %s passed @[",name);  \
         ufbgc_print_line(ANSI_COLOR_GREEN_UNDERLINE);   \
         ufbgc_print_green("]\n");                       \
-    }while(0)                                           \
+    }while(0)
 
 
 #if UFBGC_LOG_LEVEL>=UFBGC_LOG_LEVEL_INFO
@@ -113,15 +113,13 @@ typedef struct{
                 ufbgc_print_blue(format,##__VA_ARGS__);                         \
                 ufbgc_print_yellow("}\n\n");                                    \
             }                                                                   \
-            if(should_return){return UFBGC_FAILED;}                             \
+            if(should_return){return UFBGC_FAIL;}                             \
         }                                                                       \
         else{                                                                   \
             ufbgc_print_pass(type,"%s",#condition);                             \
         }                                                                       \
-    }while(0)                                                                   \
-
+    }while(0)
 #else
-
 #define ufbgc_assert_full(type,condition,expected,should_return,format,...)     \
     do{                                                                         \
         if(__builtin_expect(condition,1) == expected){                          \
@@ -131,25 +129,34 @@ typedef struct{
                 ufbgc_print_blue(format,##__VA_ARGS__);                         \
                 ufbgc_print_yellow("}\n\n");                                    \
             }                                                                   \
-            if(should_return){return UFBGC_FAILED;}                             \
+            if(should_return){return UFBGC_FAIL;}                               \
         }                                                                       \
-    }while(0)                                                                   \
-
+    }while(0)
 #endif
+
+
+#define __ufbgc_internal_assert_full(type,condition,expected,should_return,format,...)      \
+    do{                                                                                     \
+        if(__builtin_expect(condition,1) == expected){                                      \
+            ufbgc_print_fail(type,"%s ["format"]",#condition,##__VA_ARGS__);                  \
+            if(should_return){return UFBGC_FAIL;}                                           \
+        }                                                                                   \
+    }while(0)
+
 
 
 #define ufbgc_assert(condition) ufbgc_assert_full("assert",condition,false,true,"")
 #define ufbgc_assert_true(condition) ufbgc_assert_full("assert",condition,false,true,"")
 #define ufbgc_assert_false(condition) ufbgc_assert_full("assert",condition,true,true,"")
-#define ufbgc_assert_(condition,format,...) ufbgc_assert_full("assert",condition,false,true,format,##__VA_ARGS__)
-#define ufbgc_assert_true_(condition,format,...) ufbgc_assert_full("assert",condition,false,true,format,##__VA_ARGS__)
-#define ufbgc_assert_false_(condition,format,...) ufbgc_assert_full("assert",condition,true,true,format,##__VA_ARGS__)
+#define ufbgc_assert_(condition,format, ...) ufbgc_assert_full("assert",condition,false,true,format,##__VA_ARGS__)
+#define ufbgc_assert_true_(condition,format, ...) ufbgc_assert_full("assert",condition,false,true,format,##__VA_ARGS__)
+#define ufbgc_assert_false_(condition,format, ...) ufbgc_assert_full("assert",condition,true,true,format,##__VA_ARGS__)
 
 
 #define ufbgc_likely(condition) ufbgc_assert_full("likely",condition,false,false,"")
-#define ufbgc_likely_(condition,format,...) ufbgc_assert_full("likely",condition,false,false,format,##__VA_ARGS__)
+#define ufbgc_likely_(condition,format, ...) ufbgc_assert_full("likely",condition,false,false,format,##__VA_ARGS__)
 #define ufbgc_unlikely(condition) ufbgc_assert_full("unlikely",condition,true,false,"")
-#define ufbgc_unlikely_(condition,format,...) ufbgc_assert_full("unlikely",condition,true,false,format,##__VA_ARGS__)
+#define ufbgc_unlikely_(condition,format, ...) ufbgc_assert_full("unlikely",condition,true,false,format,##__VA_ARGS__)
 
 
 #define ufbgc_assert_op(a,op,b) ufbgc_assert(a op b)
@@ -161,7 +168,19 @@ typedef struct{
 
 
 
+#define __ufbgc_internal_assert(condition) __ufbgc_internal_assert_full("internal-assert",condition,false,true,"");
+#define __ufbgc_internal_assert_(condition,format, ...) __ufbgc_internal_assert_full("internal-assert",condition,false,true,format,##__VA_ARGS__);
+
 ufbgc_return_t ufbgc_start_test(const ufbgc_test_frame * const test_list);
 void * ufbgc_get_arg(const char * key);
-void * ufbgc_get_param(const char * key);
-void * ufbgc_current_param(void * param_array, size_t block_size);
+void * ufbgc_get_parameter(const char * key);
+bool get_current_test_iterator(size_t * it);
+
+#define ufbgc_get_param(buf, key, cast)                     \
+    do{                                                     \
+        size_t it = 0;                                      \
+        get_current_test_iterator(&it);                     \
+        void * p = ufbgc_get_parameter(key);                \
+        __ufbgc_internal_assert_(p != NULL,"No key found!");\
+        buf = ((cast) p)[it];                               \
+    }while(0)
