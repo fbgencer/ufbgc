@@ -1,4 +1,4 @@
-//#define UFBGC_LOG_LEVEL 2
+#define UFBGC_LOG_LEVEL 2
 #include "ufbgc.h"
 
 
@@ -100,15 +100,12 @@ ufbgc_test_parameters paramtest_param = {
             .key = "key-for-double",
             .value = valdb
         },
-
         {
             .key = NULL,
             .value = NULL,
         }
     }
 };
-
-
 
 ufbgc_return_t parameter_test(ufbgc_test_parameters * parameters, ufbgc_args * uarg){
 

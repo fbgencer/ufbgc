@@ -41,7 +41,6 @@ typedef enum {
 typedef enum {
     NO_OPTION,
     PASS_TEST,
-    ITERATE_TEST,
 }ufbgc_option_t;
 
 
@@ -113,7 +112,7 @@ typedef struct{
                 ufbgc_print_blue(format,##__VA_ARGS__);                         \
                 ufbgc_print_yellow("}\n\n");                                    \
             }                                                                   \
-            if(should_return){return UFBGC_FAIL;}                             \
+            if(should_return){return UFBGC_FAIL;}                               \
         }                                                                       \
         else{                                                                   \
             ufbgc_print_pass(type,"%s",#condition);                             \
@@ -138,7 +137,7 @@ typedef struct{
 #define __ufbgc_internal_assert_full(type,condition,expected,should_return,format,...)      \
     do{                                                                                     \
         if(__builtin_expect(condition,1) == expected){                                      \
-            ufbgc_print_fail(type,"%s ["format"]",#condition,##__VA_ARGS__);                  \
+            ufbgc_print_fail(type,"%s ["format"]",#condition,##__VA_ARGS__);                \
             if(should_return){return UFBGC_FAIL;}                                           \
         }                                                                                   \
     }while(0)

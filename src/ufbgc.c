@@ -52,11 +52,11 @@ ufbgc_return_t ufbgc_start_test(const ufbgc_test_frame * const test_list){
 
         ufbgc_print_magenta("------------------------------------------------------------\n");
         tframe++;
+        current_test_frame.frame = NULL;
+        current_test_frame.frame_iterator = 0;
+        current_test_frame.frame_iterateable = false;
     }
 
-    current_test_frame.frame = NULL;
-    current_test_frame.frame_iterator = 0;
-    current_test_frame.frame_iterateable = false;
 
     ufbgc_print_magenta("ufbgc - tests completed\n\n");
     return UFBGC_OK;
