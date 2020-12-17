@@ -51,7 +51,7 @@ typedef struct {
 
 typedef struct {
     size_t no_iteration;
-    ufbgc_args parameters[];
+    const ufbgc_args parameters[];
 } ufbgc_test_parameters;
 
 
@@ -157,15 +157,10 @@ typedef struct{
 #define ufbgc_unlikely(condition) ufbgc_assert_full("unlikely",condition,true,false,"")
 #define ufbgc_unlikely_(condition,format, ...) ufbgc_assert_full("unlikely",condition,true,false,format,##__VA_ARGS__)
 
-
 #define ufbgc_assert_op(a,op,b) ufbgc_assert(a op b)
-
-
 #define ufbgc_assert_eq(a,b) ufbgc_assert(a == b)
 #define ufbgc_assert_eqstr(a,b) ufbgc_assert_full("assert_eqstr",!strcmp(a,b),false,true,"")
 #define ufbgc_assert_eqmem(a,b,size) ufbgc_assert_full("assert_eqmem",!memcmp(a,b,size),false,true,"")
-
-
 
 #define __ufbgc_internal_assert(condition) __ufbgc_internal_assert_full("internal-assert",condition,false,true,"");
 #define __ufbgc_internal_assert_(condition,format, ...) __ufbgc_internal_assert_full("internal-assert",condition,false,true,format,##__VA_ARGS__);

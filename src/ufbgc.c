@@ -24,9 +24,7 @@ ufbgc_return_t ufbgc_start_test(const ufbgc_test_frame * const test_list){
         current_test_frame.frame = tframe;
 
         ufbgc_print_cyan("Starting test : '%s'\n",tframe->name);
-
-        size_t iter_on_test = 0;
-
+        
         if(tframe->option == PASS_TEST){
             ufbgc_print_yellow("'%s'\t\t\t%-10s\n",tframe->name,"[PASS]");
         }
@@ -35,7 +33,7 @@ ufbgc_return_t ufbgc_start_test(const ufbgc_test_frame * const test_list){
 
             do{
                 if(current_test_frame.frame_iterateable){
-                    ufbgc_print_blue("Iteration : %u\n",current_test_frame.frame_iterator);
+                    ufbgc_print_blue("Iteration : %lu\n",current_test_frame.frame_iterator);
                 }
 
                 if(tframe->fun_ptr(tframe->parameters,tframe->uarg) == UFBGC_OK){
@@ -87,6 +85,7 @@ bool get_current_test_iterator(size_t * it){
     }
 
     *it = current_test_frame.frame_iterator;
+    return true;
 }
 
 void * ufbgc_get_parameter(const char * key){
@@ -96,7 +95,7 @@ void * ufbgc_get_parameter(const char * key){
     //Use current tframe
     if(current_test_frame.frame->parameters != NULL){
         ufbgc_test_parameters * params = current_test_frame.frame->parameters;
-        ufbgc_args * uarg = params->parameters;
+        const ufbgc_args * uarg = params->parameters;
         while(uarg != NULL && uarg->key != NULL){
             if(!strcmp(uarg->key,key)){
                 return uarg->value;

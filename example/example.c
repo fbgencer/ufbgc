@@ -1,4 +1,4 @@
-#define UFBGC_LOG_LEVEL 2
+#define UFBGC_LOG_LEVEL 0
 #include "ufbgc.h"
 
 
@@ -79,25 +79,23 @@ ufbgc_return_t test3(ufbgc_test_parameters * parameters, ufbgc_args * uarg){
 }
 
 
-const char * val1[] = {"a1","a2","a3",};
-
-const int  vali[] = {100,200,300,500};
-
-const double  valdb[] = {1.1,1.2,1.3};
+const char * val1[] = {"a1","a2","a3"};
+int  vali[] = {100,200,300,500};
+double  valdb[] = {1.1,1.2,1.3};
 
 ufbgc_test_parameters paramtest_param = {
     .no_iteration = 3,
     .parameters = {
         {
-            .key = "def",
+            .key = "string-inputs",
             .value = val1
         },
         {
-            .key = "foo",
+            .key = "integer-inputs",
             .value = vali
         },
         {
-            .key = "key-for-double",
+            .key = "double-inputs",
             .value = valdb
         },
         {
@@ -110,24 +108,24 @@ ufbgc_test_parameters paramtest_param = {
 ufbgc_return_t parameter_test(ufbgc_test_parameters * parameters, ufbgc_args * uarg){
 
     const char * str;
-    ufbgc_get_param(str,"def",const char **);
+    ufbgc_get_param(str,"string-inputs",const char **);
 
     ufbgc_assert(str != NULL);
 
     printf("Got string:'%s'\n",str);
 
     int ia;
-    ufbgc_get_param(ia,"foo",const int *);
+    ufbgc_get_param(ia,"integer-inputs",int *);
     printf("Got int:%d\n",ia);
 
 
     double db;
-    ufbgc_get_param(db,"key-for-double",const double *);
+    ufbgc_get_param(db,"double-inputs",double *);
     printf("Got double:%g\n",db);
 
     
 
-    double * dx = (double *)ufbgc_get_parameter("key-for-double");
+    double * dx = (double *)ufbgc_get_parameter("double-inputs");
     size_t it = 0;
     get_current_test_iterator(&it);
     printf("Double with iterator: %g\n",dx[it]);
@@ -135,6 +133,49 @@ ufbgc_return_t parameter_test(ufbgc_test_parameters * parameters, ufbgc_args * u
 
     return UFBGC_OK;
 }
+
+
+
+int  operator_test_inputs1[] =    {100,200,300,400,500};
+int  operator_test_inputs2[] =    {-50,10,3,4,23};
+int  operator_test_expected[] =   {50,210,303,4042,523};
+ufbgc_test_parameters operator_test_param = {
+    .no_iteration = 5,
+    .parameters = {
+        {
+            .key = "input1",
+            .value = operator_test_inputs1
+        },
+        {
+            .key = "input2",
+            .value = operator_test_inputs2
+        },
+        {
+            .key = "expected",
+            .value = operator_test_expected
+        },
+        {
+            .key = NULL,
+            .value = NULL,
+        }
+    }
+};
+
+ufbgc_return_t operator_test(ufbgc_test_parameters * parameters, ufbgc_args * uarg){
+
+    int * a = (int *)ufbgc_get_parameter("input1");
+    int * b = (int *)ufbgc_get_parameter("input2");
+    int * c = (int *)ufbgc_get_parameter("expected");
+    size_t it = 0;
+    get_current_test_iterator(&it);
+
+    int sum = a[it] + b[it];
+    ufbgc_assert_eq(sum,c[it]);
+
+    return UFBGC_OK;
+}
+
+
 
 static const ufbgc_test_frame test_list[] = {
     {
@@ -165,8 +206,17 @@ static const ufbgc_test_frame test_list[] = {
         .parameters = &paramtest_param,
         .uarg = NULL,
     },
-
-    NULL,
+    {
+        .fun_ptr = operator_test,
+        .name = "operator-test",
+        .option = NO_OPTION,
+        .parameters = &operator_test_param,
+        .uarg = NULL,
+    },
+    {
+        NULL
+    }
+    ,
 };
 
 
