@@ -115,9 +115,9 @@ ufbgc_return_t parameter_test(ufbgc_test_parameters * parameters, ufbgc_args * u
 }
 ```
 
-- User arguments
+- **User arguments**
 
-  `ufbgc_args` types has the following structure and its left as users wish how to provide data, it is called each time test function is called
+  `ufbgc_args` types has the following structure and its left as users wish how to provide data, it is called each time the test function is called
 
 ```c
 typedef struct {
@@ -126,7 +126,7 @@ typedef struct {
 } ufbgc_args;
 ```
 
-- Test suite
+- **Test suite**
 
   Test suite is called test lists in `ufbgc` and their type is `ufbgc_test_frame`, each element in `ufbgc_test_frame` takes function pointer of the test, name of the test, options of the tests and finally parameters and user arguments
 

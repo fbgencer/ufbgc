@@ -1,0 +1,52 @@
+ufbgc - starting tests
+
+Starting test : 'test2'
+'test2'			[OK]      
+------------------------------------------------------------
+Starting test : 'test1'
+*iptr == -520  -->  likely failed @[path_of_file/ufbgc/example/example.c/test1:33]
+sizeof(123.22) != x  -->  assert failed @[path_of_file/ufbgc/example/example.c/test1:39]
+
+Note:{This is a very important mistake
+sticker note is left here to make sure we never got this error!
+which also shows how to put notes on assertion :)}
+
+'test1'			[FAILED]  
+------------------------------------------------------------
+Starting test : 'test3'
+'test3'			[PASS]    
+------------------------------------------------------------
+Starting test : 'parameter-test'
+Iteration : 0
+Got string:'a1'
+Got int:100
+Got double:1.1
+Double with iterator: 1.1
+'parameter-test'			[OK]      
+Iteration : 1
+Got string:'a2'
+Got int:200
+Got double:1.2
+Double with iterator: 1.2
+'parameter-test'			[OK]      
+Iteration : 2
+Got string:'a3'
+Got int:300
+Got double:1.3
+Double with iterator: 1.3
+'parameter-test'			[OK]      
+------------------------------------------------------------
+Starting test : 'operator-test'
+Iteration : 0
+'operator-test'			[OK]      
+Iteration : 1
+'operator-test'			[OK]      
+Iteration : 2
+'operator-test'			[OK]      
+Iteration : 3
+sum == c[it]  -->  assert failed @[path_of_file/ufbgc/example/example.c/operator_test:173]
+'operator-test'			[FAILED]  
+Iteration : 4
+'operator-test'			[OK]      
+------------------------------------------------------------
+ufbgc - tests completed
