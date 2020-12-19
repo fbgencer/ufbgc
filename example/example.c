@@ -55,8 +55,19 @@ ufbgc_return_t test1(ufbgc_test_parameters * parameters, ufbgc_args * uarg){
     return UFBGC_OK;
 }
 
-ufbgc_return_t test2(ufbgc_test_parameters * parameters, ufbgc_args * uarg){
 
+UFBGC_TEST(Testfoo,NO_OPTION,NULL,NULL,
+{
+    printf("Test2 Setup function!\n");
+    //*uarg->value = strdup("Message from setup");
+    printf("Address of uarg %p\n",uarg);
+    ufbgc_args * p = (ufbgc_args *)malloc(sizeof(ufbgc_args));
+    p->value = strdup("hello");
+
+    *uarg = p;
+},
+{
+    printf("Test function of test2!\n");
     char ch = 'b';
     double pi = 3.141592654;
 
@@ -65,9 +76,36 @@ ufbgc_return_t test2(ufbgc_test_parameters * parameters, ufbgc_args * uarg){
     ufbgc_assert_op(ch, ==, 'b');
 
     ufbgc_assert_op(pi ,==, pi);
+    printf("Address of uarg %p\n",uarg);
+    if(uarg->value != NULL){
+        printf("User arg:%s\n",uarg->value);
+    }
 
-    return UFBGC_OK;
-}
+},
+{
+    printf("Test2 teardown\n");
+    printf("Address of uarg %p\n",uarg);
+    if(uarg->value != NULL){
+        printf("User arg:%s\n",uarg->value);
+    }
+
+    free(uarg->value);
+    free(uarg);
+})
+
+// ufbgc_return_t test2(ufbgc_test_parameters * parameters, ufbgc_args * uarg){
+
+//     char ch = 'b';
+//     double pi = 3.141592654;
+
+//     ufbgc_assert(0 != 1);
+//     ufbgc_assert_op('a', ==, 'a');
+//     ufbgc_assert_op(ch, ==, 'b');
+
+//     ufbgc_assert_op(pi ,==, pi);
+
+//     return UFBGC_OK;
+// }
 
 
 ufbgc_return_t test3(ufbgc_test_parameters * parameters, ufbgc_args * uarg){
@@ -127,7 +165,7 @@ ufbgc_return_t parameter_test(ufbgc_test_parameters * parameters, ufbgc_args * u
 
     double * dx = (double *)ufbgc_get_parameter("double-inputs");
     size_t it = 0;
-    get_current_test_iterator(&it);
+    ufbgc_get_current_test_iterator(&it);
     printf("Double with iterator: %g\n",dx[it]);
 
 
@@ -167,7 +205,7 @@ ufbgc_return_t operator_test(ufbgc_test_parameters * parameters, ufbgc_args * ua
     int * b = (int *)ufbgc_get_parameter("input2");
     int * c = (int *)ufbgc_get_parameter("expected");
     size_t it = 0;
-    get_current_test_iterator(&it);
+    ufbgc_get_current_test_iterator(&it);
 
     int sum = a[it] + b[it];
     ufbgc_assert_eq(sum,c[it]);
@@ -176,48 +214,45 @@ ufbgc_return_t operator_test(ufbgc_test_parameters * parameters, ufbgc_args * ua
 }
 
 
-
-static const ufbgc_test_frame test_list[] = {
-    {
-        .fun_ptr = test2,
-        .name = "test2",
-        .option = NO_OPTION,
-        .parameters = NULL,
-        .uarg = NULL,
-    },
-    {
-        .fun_ptr = test1,
-        .name = "test1",
-        .option = NO_OPTION,
-        .parameters = NULL,
-        .uarg = test1_args,
-    },
-    {
-        .fun_ptr = test3,
-        .name = "test3",
-        .option = PASS_TEST,
-        .parameters = NULL,
-        .uarg = NULL,
-    },
-    {
-        .fun_ptr = parameter_test,
-        .name = "parameter-test",
-        .option = NO_OPTION,
-        .parameters = &paramtest_param,
-        .uarg = NULL,
-    },
-    {
-        .fun_ptr = operator_test,
-        .name = "operator-test",
-        .option = NO_OPTION,
-        .parameters = &operator_test_param,
-        .uarg = NULL,
-    },
+static ufbgc_test_frame test_list[] = {
+        Testfoo_frame,
+    // {
+    //     .test_f = test1,
+    //     .name = "test1",
+    //     .option = NO_OPTION,
+    //     .parameters = NULL,
+    //     .uarg = test1_args,
+    // },
+    // {
+    //     .test_f = test3,
+    //     .name = "test3",
+    //     .option = PASS_TEST,
+    //     .parameters = NULL,
+    //     .uarg = NULL,
+    // },
+    // {
+    //     .test_f = parameter_test,
+    //     .name = "parameter-test",
+    //     .option = NO_OPTION,
+    //     .parameters = &paramtest_param,
+    //     .uarg = NULL,
+    // },
+    // {
+    //     .test_f = operator_test,
+    //     .name = "operator-test",
+    //     .option = NO_OPTION,
+    //     .parameters = &operator_test_param,
+    //     .uarg = NULL,
+    // },
     {
         NULL
     }
     ,
 };
+
+
+    
+
 
 
 int main(int argc, char const *argv[]){

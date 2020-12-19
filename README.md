@@ -7,6 +7,7 @@
 - User arguments can be provided to test functions
 - Iteration over test functions with different input parameters
 - Verbosity level of outputs
+- Time stamps and execution time of the tests
 
 
 
@@ -108,7 +109,7 @@ ufbgc_return_t parameter_test(ufbgc_test_parameters * parameters, ufbgc_args * u
     //Instead of using ufbgc_get_param macro, this macro finds the parameter from its key
     double * dx = (double *)ufbgc_get_parameter("double-inputs"); //We cast it to double*
     size_t it = 0;	
-    get_current_test_iterator(&it); //Current test iterator fills it variable to which iteration is it
+    ufbgc_get_current_test_iterator(&it); //Current test iterator fills it variable to which iteration is it
     printf("Double with iterator: %g\n",dx[it]); //Printed double values depend on the iterator type
 
     return UFBGC_OK;
@@ -133,14 +134,14 @@ typedef struct {
 ```c
 static const ufbgc_test_frame test_list[] = {
     {
-        .fun_ptr = test2,
+        .test_f = test2,
         .name = "test2",
         .option = NO_OPTION,
         .parameters = NULL,
         .uarg = NULL,
     },
     {
-        .fun_ptr = test1,
+        .test_f = test1,
         .name = "test1",
         .option = NO_OPTION,
         .parameters = NULL,
@@ -213,5 +214,4 @@ $ LD_LIBRARY_PATH=/usr/local/lib
 - [ ] Assigning verbosity level of tests
 - [ ] File output for test functions
 - [ ] `Setup`(called before test) and `Teardown`(called after test) functions
-- [ ] Time stamp on logs
 - [ ] Different test options

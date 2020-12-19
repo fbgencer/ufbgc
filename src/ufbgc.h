@@ -4,6 +4,7 @@
 #include "string.h"
 #include "stdio.h"
 #include "stdint.h"
+#include "time.h"
 
 #define ANSI_COLOR_BLACK    "\033[1;30m"
 #define ANSI_COLOR_RED      "\033[1;31m"
@@ -55,11 +56,15 @@ typedef struct {
 } ufbgc_test_parameters;
 
 
+typedef ufbgc_return_t(* ufbgc_setup_fun_t)(ufbgc_test_parameters * parameters, ufbgc_args ** uarg);
 typedef ufbgc_return_t(* ufbgc_test_fun_t)(ufbgc_test_parameters * parameters, ufbgc_args * uarg);
+typedef ufbgc_return_t(* ufbgc_teardown_fun_t)(ufbgc_test_parameters * parameters, ufbgc_args * uarg);
 
 typedef struct{
-    ufbgc_test_fun_t fun_ptr;
+    ufbgc_test_fun_t test_f;
     const char * name;
+    ufbgc_setup_fun_t setup_f;
+    ufbgc_teardown_fun_t teardown_f;
     ufbgc_option_t option;
     ufbgc_test_parameters * parameters;
     ufbgc_args * uarg;
@@ -162,19 +167,48 @@ typedef struct{
 #define ufbgc_assert_eqstr(a,b) ufbgc_assert_full("assert_eqstr",!strcmp(a,b),false,true,"")
 #define ufbgc_assert_eqmem(a,b,size) ufbgc_assert_full("assert_eqmem",!memcmp(a,b,size),false,true,"")
 
+
 #define __ufbgc_internal_assert(condition) __ufbgc_internal_assert_full("internal-assert",condition,false,true,"");
 #define __ufbgc_internal_assert_(condition,format, ...) __ufbgc_internal_assert_full("internal-assert",condition,false,true,format,##__VA_ARGS__);
-
-ufbgc_return_t ufbgc_start_test(const ufbgc_test_frame * const test_list);
-void * ufbgc_get_arg(const char * key);
-void * ufbgc_get_parameter(const char * key);
-bool get_current_test_iterator(size_t * it);
 
 #define ufbgc_get_param(buf, key, cast)                     \
     do{                                                     \
         size_t it = 0;                                      \
-        get_current_test_iterator(&it);                     \
+        ufbgc_get_current_test_iterator(&it);               \
         void * p = ufbgc_get_parameter(key);                \
         __ufbgc_internal_assert_(p != NULL,"No key found!");\
         buf = ((cast) p)[it];                               \
     }while(0)
+
+ufbgc_return_t ufbgc_start_test(const ufbgc_test_frame * const test_list);
+void * ufbgc_get_arg(const char * key);
+void * ufbgc_get_parameter(const char * key);
+bool ufbgc_get_current_test_iterator(size_t * it);
+
+
+
+
+
+//Time related
+void ufbgc_get_current_time(struct tm * dest);
+double ufbgc_get_execution_time(clock_t start);
+double ufbgc_get_execution_time_ms(clock_t start);
+double ufbgc_get_execution_time_us(clock_t start);
+
+
+
+#define UFBGC_TEST(test_function_name, _opt, _param, _uarg,sf,tf,tdf)                                   \
+    ufbgc_return_t test_function_name##_setup(ufbgc_test_parameters * parameters, ufbgc_args ** uarg)   \
+        {sf return UFBGC_OK;}                                                                           \
+    ufbgc_return_t test_function_name(ufbgc_test_parameters * parameters, ufbgc_args * uarg)            \
+        {tf return UFBGC_OK;}                                                                           \
+    ufbgc_return_t test_function_name##_teardown(ufbgc_test_parameters * parameters, ufbgc_args * uarg) \
+        {tdf return UFBGC_OK;}                                                                          \
+    const ufbgc_test_frame test_function_name##_frame = {                                               \
+        .test_f = test_function_name,                                                                   \
+        .name = #test_function_name,                                                                    \
+        .setup_f = test_function_name##_setup,                                                          \
+        .teardown_f = test_function_name##_teardown,                                                    \
+        .option = _opt,                                                                                 \
+        .parameters = _param,                                                                           \
+        .uarg = _uarg};
