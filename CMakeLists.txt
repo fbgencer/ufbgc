@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(ufbgc VERSION 1.0.0 DESCRIPTION "ufbgc unit test framework")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Os -Wall")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Wall")
 
 
 include(GNUInstallDirs)
@@ -26,6 +26,9 @@ LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 install(FILES ${CMAKE_BINARY_DIR}/ufbgc.pc
     DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
 
+
+#set_source_files_properties(src/ufbgc.c PROPERTIES LANGUAGE CXX )
+#set_source_files_properties(example/example.c PROPERTIES LANGUAGE CXX )
 
 add_executable(ufbgc_example example/example.c)
 target_link_libraries (ufbgc_example LINK_PUBLIC ufbgc)

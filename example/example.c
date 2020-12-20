@@ -1,4 +1,4 @@
-#define UFBGC_LOG_LEVEL 0
+#define UFBGC_LOG_LEVEL 3
 #include "ufbgc.h"
 
 
@@ -23,18 +23,12 @@ ufbgc_args test1_args[] = {
 };
 
 
-ufbgc_return_t test1(ufbgc_test_parameters * parameters, ufbgc_args * uarg){
+ufbgc_return_t test1(ufbgc_test_parameters * parameters, void * uarg){
 
-
-    //Lets check user args first
-    int * iptr = (int *)ufbgc_get_arg("integer-arg");
-
-    ufbgc_assert(iptr != NULL); //We know arg1 is in the list, lets check its value
-    ufbgc_likely(*iptr == -520); //Warns the system but continues to test
 
     int x = sizeof(double);
 
-    ufbgc_likely(sizeof(12.3) == x);
+    ufbgc_likely(sizeof(12) == x);
 
     ufbgc_assert_(sizeof(123.22) != x,
         "This is a very important mistake\n"
@@ -56,15 +50,12 @@ ufbgc_return_t test1(ufbgc_test_parameters * parameters, ufbgc_args * uarg){
 }
 
 
-UFBGC_TEST(Testfoo,NO_OPTION,NULL,NULL,
+UFBGC_TEST(Testfoo,NO_OPTION,NULL,
 {
     printf("Test2 Setup function!\n");
-    //*uarg->value = strdup("Message from setup");
     printf("Address of uarg %p\n",uarg);
-    ufbgc_args * p = (ufbgc_args *)malloc(sizeof(ufbgc_args));
-    p->value = strdup("hello");
 
-    *uarg = p;
+    *uarg = strdup("hello");
 },
 {
     printf("Test function of test2!\n");
@@ -76,39 +67,30 @@ UFBGC_TEST(Testfoo,NO_OPTION,NULL,NULL,
     ufbgc_assert_op(ch, ==, 'b');
 
     ufbgc_assert_op(pi ,==, pi);
-    printf("Address of uarg %p\n",uarg);
-    if(uarg->value != NULL){
-        printf("User arg:%s\n",uarg->value);
-    }
-
+    printf("Address of uarg %p | message:%s\n",uarg, (char*)uarg);
 },
 {
     printf("Test2 teardown\n");
-    printf("Address of uarg %p\n",uarg);
-    if(uarg->value != NULL){
-        printf("User arg:%s\n",uarg->value);
-    }
-
-    free(uarg->value);
+    printf("Address of uarg %p | message:%s\n",uarg, (char*)uarg);
     free(uarg);
 })
 
-// ufbgc_return_t test2(ufbgc_test_parameters * parameters, ufbgc_args * uarg){
+ufbgc_return_t test2_as_function(ufbgc_test_parameters * parameters, void * uarg){
 
-//     char ch = 'b';
-//     double pi = 3.141592654;
+    char ch = 'b';
+    double pi = 3.141592654;
 
-//     ufbgc_assert(0 != 1);
-//     ufbgc_assert_op('a', ==, 'a');
-//     ufbgc_assert_op(ch, ==, 'b');
+    ufbgc_assert(0 != 1);
+    ufbgc_assert_op('a', ==, 'a');
+    ufbgc_assert_op(ch, ==, 'b');
 
-//     ufbgc_assert_op(pi ,==, pi);
+    ufbgc_assert_op(pi ,==, pi);
 
-//     return UFBGC_OK;
-// }
+    return UFBGC_OK;
+}
 
 
-ufbgc_return_t test3(ufbgc_test_parameters * parameters, ufbgc_args * uarg){
+ufbgc_return_t test3(ufbgc_test_parameters * parameters, void * uarg){
 
     //This will be asserted but this test will be added to test list with pass test option
     ufbgc_assert(0 == 0);
@@ -143,7 +125,7 @@ ufbgc_test_parameters paramtest_param = {
     }
 };
 
-ufbgc_return_t parameter_test(ufbgc_test_parameters * parameters, ufbgc_args * uarg){
+ufbgc_return_t parameter_test(ufbgc_test_parameters * parameters, void * uarg){
 
     const char * str;
     ufbgc_get_param(str,"string-inputs",const char **);
@@ -161,7 +143,6 @@ ufbgc_return_t parameter_test(ufbgc_test_parameters * parameters, ufbgc_args * u
     ufbgc_get_param(db,"double-inputs",double *);
     printf("Got double:%g\n",db);
 
-    
 
     double * dx = (double *)ufbgc_get_parameter("double-inputs");
     size_t it = 0;
@@ -174,9 +155,9 @@ ufbgc_return_t parameter_test(ufbgc_test_parameters * parameters, ufbgc_args * u
 
 
 
-int  operator_test_inputs1[] =    {100,200,300,400,500};
-int  operator_test_inputs2[] =    {-50,10,3,4,23};
-int  operator_test_expected[] =   {50,210,303,4042,523};
+int  operator_test_inputs1[]    =   {100,200,300,400,500};
+int  operator_test_inputs2[]    =   {-50,10,3,4,23};
+int  operator_test_expected[]   =   {50,210,303,4042,523};
 ufbgc_test_parameters operator_test_param = {
     .no_iteration = 5,
     .parameters = {
@@ -199,7 +180,7 @@ ufbgc_test_parameters operator_test_param = {
     }
 };
 
-ufbgc_return_t operator_test(ufbgc_test_parameters * parameters, ufbgc_args * uarg){
+ufbgc_return_t operator_test(ufbgc_test_parameters * parameters, void * uarg){
 
     int * a = (int *)ufbgc_get_parameter("input1");
     int * b = (int *)ufbgc_get_parameter("input2");
@@ -214,36 +195,40 @@ ufbgc_return_t operator_test(ufbgc_test_parameters * parameters, ufbgc_args * ua
 }
 
 
-static ufbgc_test_frame test_list[] = {
+ufbgc_test_frame test_list[] = {
         Testfoo_frame,
-    // {
-    //     .test_f = test1,
-    //     .name = "test1",
-    //     .option = NO_OPTION,
-    //     .parameters = NULL,
-    //     .uarg = test1_args,
-    // },
-    // {
-    //     .test_f = test3,
-    //     .name = "test3",
-    //     .option = PASS_TEST,
-    //     .parameters = NULL,
-    //     .uarg = NULL,
-    // },
-    // {
-    //     .test_f = parameter_test,
-    //     .name = "parameter-test",
-    //     .option = NO_OPTION,
-    //     .parameters = &paramtest_param,
-    //     .uarg = NULL,
-    // },
-    // {
-    //     .test_f = operator_test,
-    //     .name = "operator-test",
-    //     .option = NO_OPTION,
-    //     .parameters = &operator_test_param,
-    //     .uarg = NULL,
-    // },
+    {
+        .test_f = test1,
+        .name = "test1",
+        .setup_f = NULL,
+        .teardown_f = NULL,
+        .parameters = NULL,
+        .option = NO_OPTION,
+        .log_level = UFBGC_LOG_LEVEL_WARNING,
+    },
+    {
+        .test_f = test3,
+        .name = "test3",
+        .setup_f = NULL,
+        .teardown_f = NULL,
+        .parameters = NULL,
+        .option = PASS_TEST,
+    },
+    {
+        .test_f = parameter_test,
+        .name = "parameter-test",
+        .setup_f = NULL,
+        .teardown_f = NULL,
+        .parameters = &paramtest_param,
+        .option = NO_OPTION,
+    },
+    {
+        .test_f = operator_test,
+        .name = "operator-test",
+        .parameters = &operator_test_param,
+        .option = NO_OPTION,
+        .log_level = UFBGC_LOG_LEVEL_INFO,
+    },
     {
         NULL
     }
