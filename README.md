@@ -2,37 +2,17 @@
 
 `ufbgc` is a simple unit test framework with the following features
 
-- Different assert macros for different situations
-- Only requires standard C-libraries
+- Versatile assert macros for different situations
+- Only requires standard C-libraries, no dependency
 - User arguments can be provided to test functions
-- Iteration over test functions with different input parameters
-- Verbosity level of outputs
+- Iterations over test functions with different input parameters
 - Time stamps and execution time of the tests
-
+- Assigning verbosity level of tests (error, warning and info levels)
+- File output can be printed to a specific file (for each test)
+- `Setup`(called before test) and `Teardown`(called after test) functions
 
 
 ## Getting started
-
-- **Test function type**
-
-```c
-
-ufbgc_return_t test_function(ufbgc_test_parameters * parameters, ufbgc_args * uarg){
-
-    char ch = 'x';
-    double pi = 3.141592654;
-
-    ufbgc_assert(0 != 1); 			//This condition is true
-    ufbgc_assert_op('a', ==, 'a');	//This is also true!
-    ufbgc_assert_op(ch, ==, 'b');  	//This condition is wrong, ch is 'x' ufbgc asserts this line and breaks the tests
-
-    ufbgc_assert_op(pi ,==, pi); //We couldn't have chance to take this assert
-
-    return UFBGC_OK;	//Each test function must return UFBGC_OK at the end, this will tell test function is passed its tests
-}
-
-```
-
 
 
 - **Assertion macros** 
@@ -60,6 +40,66 @@ ufbgc_assert_eq(a,b)			//Same as ufbgc_assert(a == b)
 ufbgc_assert_eqstr(a,b) 		//String comparison, same as ufbgc_assert(!strcmp(a,b))
 ufbgc_assert_eqmem(a,b,size) 	//Block of memory comparison, same as ufbgc_assert(!memcmp(a,b,size))
 ```
+
+
+- **Custom test function type**
+
+```c
+
+ufbgc_return_t test_function(ufbgc_test_parameters * parameters, void * uarg){
+    double pi = 3.141592654;
+    ufbgc_assert(0 != 1); 			//This condition is true
+    ufbgc_assert_op(pi ,==, pi);    //This is also true
+    return UFBGC_OK;	//Each test function must return UFBGC_OK at the end, this will tell test function is passed its tests
+}
+
+//Setup function type
+ufbgc_return_t example_setup_function(ufbgc_test_parameters * parameters, void ** uarg);
+//Teardown function type
+ufbgc_return_t example_teardown_function(ufbgc_test_parameters * parameters, void * uarg);
+```
+
+
+- **UFBGC_TEST macro**
+
+```c
+/*
+    UFBGC_TEST macro creates all the necessary fields and functions for the desired test
+    UFBGC_TEST( Test2,              //Test function name
+                NO_OPTION,          //Option of the test
+                UFBGC_LOG_WARNING,  //Log level of the test
+                NULL,               //Output file
+                NULL,               //ufbgc_test_parameters
+                {...},              //Setup function
+                {...},              //Test function
+                {...})              //Teardown function
+    
+    This macro creates "const ufbgc_test_frame " variable with the given test name + _frame
+    So for this case Test2_frame is created as const ufbgc_test_frame to provide to the test-suite
+*/
+UFBGC_TEST(Test2,NO_OPTION,UFBGC_LOG_WARNING,NULL,NULL,
+{
+    printf("Test2 Setup function!\n");
+    printf("Address of uarg %p\n",uarg); //uarg is not NULL but *uarg is
+    *uarg = strdup("hello");        //Setup function provides void ** uarg, so *uarg is used here
+},
+{
+    printf("Test function of test2!\n");
+    char ch = 'b';
+
+    ufbgc_assert(0 != 1);
+    ufbgc_assert_op('a', ==, 'a');
+    ufbgc_assert_op(ch, ==, 'b');
+    printf("Message:%s\n",(char*)uarg); //Allocated user arg in the setup function is passed to test
+},
+{
+    printf("Test2 teardown\n");
+    printf("Address of uarg %p | message:%s\n",uarg, (char*)uarg); //Allocated user arg in the setup function is passed to teardown
+    free(uarg); //We need to free uarg because we used strdup in the test function
+})
+```
+
+
 
 - **User parameters and iterations**
 
@@ -115,41 +155,88 @@ ufbgc_return_t parameter_test(ufbgc_test_parameters * parameters, ufbgc_args * u
     return UFBGC_OK;
 }
 ```
+- **Test frame**
 
-- **User arguments**
-
-  `ufbgc_args` types has the following structure and its left as users wish how to provide data, it is called each time the test function is called
-
+    Test frame contains necessary information about the test, it is used to run the test
+    It has the following struct type
 ```c
-typedef struct {
-    const char * key;
-    void * value;
-} ufbgc_args;
+typedef struct{
+    ufbgc_test_fun_t test_f;                //<! Actual test function
+    const char * name;                      //<! Test name
+    ufbgc_setup_fun_t setup_f;              //<! Setup function
+    ufbgc_teardown_fun_t teardown_f;        //<! Teardown function
+    ufbgc_test_parameters * parameters;     //<! Test parameters
+    ufbgc_option_t option;                  //<! Test options
+    ufbgc_log_verbosity_t log_level;        //<! Log level of the test
+    const char * output_file;               //<! Output file name
+}ufbgc_test_frame;
 ```
+Example of test frame can be created as following
+```c
+    .test_f = example_test1,            //Test function
+    .name = "test1",                    //Name of the test function
+    .setup_f = NULL,                    //Setup function
+    .teardown_f = NULL,                 //Teardown function
+    .parameters = NULL,                 //Parameters
+    .option = NO_OPTION,                //Test option
+    .log_level = UFBGC_LOG_WARNING,     //Test verbosity
+    .output_file = "test1_output.txt",  //Instead of stdout, all test results will be printed into test1_output.txt
+```
+
+- **Test Options**
+  
+    There is only one test option at the current version, which is `PASS_TEST` macro, if test has this option is set then its test function is not gonna be called (This is helpful for running multiple tests and suppress the output of the test)
+
+- **Test Log levels**
+
+| Macro                       | Output                                                       | Color  |
+| --------------------------- | ------------------------------------------------------------ | ------ |
+| `UFBGC_LOG_ERROR` (default) | If `ufbgc_assert*`macros fail, results will be printed       | Red    |
+| `UFBGC_LOG_WARNING`         | If `ufbgc_assert*` + `ufbgc_likely*`macros fail, results will be printed | Yellow |
+| `UFBGC_LOG_INFO`            | Failure printing same as `UFBGC_LOG_WARNING`, but also prints all assert macro results | Green  |
 
 - **Test suite**
 
-  Test suite is called test lists in `ufbgc` and their type is `ufbgc_test_frame`, each element in `ufbgc_test_frame` takes function pointer of the test, name of the test, options of the tests and finally parameters and user arguments
-
+    Test suite is called test lists in `ufbgc` and their type is `ufbgc_test_frame`.
+    Example test suite from `example/example.c`
 ```c
-static const ufbgc_test_frame test_list[] = {
+ufbgc_test_frame test_list[] = {
     {
-        .test_f = test2,
-        .name = "test2",
-        .option = NO_OPTION,
+        .test_f = example_test1,            //Test function
+        .name = "test1",                    //Name of the test function
+        .setup_f = NULL,                    //Setup function
+        .teardown_f = NULL,                 //Teardown function
+        .parameters = NULL,                 //Parameters
+        .option = NO_OPTION,                //Test option
+        .log_level = UFBGC_LOG_WARNING,     //Test verbosity
+        .output_file = "test1_output.txt",  //Instead of stdout, all test results will be printed into test1_output.txt
+    },
+            Test2_frame,                    //This variable is created with the UFBGC_TEST macro, hence needs to add into test list
+    {
+        .test_f = test3,
+        .name = "test3",
+        .setup_f = NULL,
+        .teardown_f = NULL,
         .parameters = NULL,
-        .uarg = NULL,
+        .option = PASS_TEST,                //ufbgc will pass this test and not run
     },
     {
-        .test_f = test1,
-        .name = "test1",
+        .test_f = parameter_test,
+        .name = "parameter-test",
+        .setup_f = NULL,
+        .teardown_f = NULL,
+        .parameters = &paramtest_param,
         .option = NO_OPTION,
-        .parameters = NULL,
-        .uarg = test1_args,
     },
-    //Last value must be NULL
     {
-        NULL
+        .test_f = operator_test,
+        .name = "operator-test",
+        .parameters = &operator_test_param,
+        .option = NO_OPTION,
+        .log_level = UFBGC_LOG_INFO,        //Verbosity level set to UFBGC_LOG_INFO, so every information about test will be printed(even if assertion not fails) 
+    },
+    {
+        NULL //Last value of the test list must be NULL, so program will stop here
     }
     ,
 };
@@ -206,12 +293,3 @@ $ LD_LIBRARY_PATH=/usr/local/lib
 
 - Taking the source code
   - License allows to copy `ufbgc` , so just copy the src folder which has only two files `ufbgc.c` and `ufbgc.h` and compile it with your project
-
-
-
-# TO-DO List
-
-- [ ] Assigning verbosity level of tests
-- [ ] File output for test functions
-- [ ] `Setup`(called before test) and `Teardown`(called after test) functions
-- [ ] Different test options
