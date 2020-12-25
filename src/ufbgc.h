@@ -4,6 +4,7 @@
 #include "string.h"
 #include "stdio.h"
 #include "stdint.h"
+#include "time.h"
 
 #define ANSI_COLOR_BLACK    "\033[1;30m"
 #define ANSI_COLOR_RED      "\033[1;31m"
@@ -24,15 +25,6 @@
 #define ANSI_COLOR_CYAN_UNDERLINE     "\e[4;36m"
 #define ANSI_COLOR_WHITE_UNDERLINE    "\e[4;37m"
 
-#define UFBGC_LOG_LEVEL_ERROR   0
-#define UFBGC_LOG_LEVEL_WARNING 1
-#define UFBGC_LOG_LEVEL_INFO    2
-
-
-#ifndef UFBGC_LOG_LEVEL
-    #define UFBGC_LOG_LEVEL UFBGC_LOG_LEVEL_ERROR
-#endif
-
 typedef enum {
     UFBGC_OK,
     UFBGC_FAIL
@@ -43,138 +35,171 @@ typedef enum {
     PASS_TEST,
 }ufbgc_option_t;
 
+typedef enum {
+    UFBGC_LOG_ERROR = 0,
+    UFBGC_LOG_WARNING = 1,
+    UFBGC_LOG_INFO = 2,
+}ufbgc_log_verbosity_t;
+
 
 typedef struct {
     const char * key;
-    void * value;
+    const void * value;
 } ufbgc_args;
 
 typedef struct {
     size_t no_iteration;
-    const ufbgc_args parameters[];
+    ufbgc_args parameters[];
 } ufbgc_test_parameters;
 
 
-typedef ufbgc_return_t(* ufbgc_test_fun_t)(ufbgc_test_parameters * parameters, ufbgc_args * uarg);
+typedef ufbgc_return_t(* ufbgc_setup_fun_t)(ufbgc_test_parameters * parameters, void ** uarg);
+typedef ufbgc_return_t(* ufbgc_test_fun_t)(ufbgc_test_parameters * parameters, void * uarg);
+typedef ufbgc_return_t(* ufbgc_teardown_fun_t)(ufbgc_test_parameters * parameters, void * uarg);
 
 typedef struct{
-    ufbgc_test_fun_t fun_ptr;
-    const char * name;
-    ufbgc_option_t option;
-    ufbgc_test_parameters * parameters;
-    ufbgc_args * uarg;
+    ufbgc_test_fun_t test_f;                //<! Actual test function
+    const char * name;                      //<! Test name
+    ufbgc_setup_fun_t setup_f;              //<! Setup function
+    ufbgc_teardown_fun_t teardown_f;        //<! Teardown function
+    ufbgc_test_parameters * parameters;     //<! Test parameters
+    ufbgc_option_t option;                  //<! Test options
+    ufbgc_log_verbosity_t log_level;        //<! Log level of the test
+    const char * output_file;               //<! Output file name
 }ufbgc_test_frame;
 
+ufbgc_return_t ufbgc_start_test(const ufbgc_test_frame * test_list);
+const void * ufbgc_get_parameter(const char * key);
+bool ufbgc_get_current_test_iterator(size_t * it);
+
+ufbgc_log_verbosity_t ufbgc_get_current_test_verbosity();
+FILE * ufbgc_get_current_test_file();
 
 
+//If flag is one put the color, if not then put the string
+#define UFBGC_COLOR_SANDWICH(flag,color,format) ((flag) ? color format ANSI_COLOR_RESET : format)
+//#define UFBGC_COLOR_SANDWICH_DET(flag,color,format) (flag ? color "%s/%s:%u" format ANSI_COLOR_RESET ,__FILE__,__FUNCTION__,  __LINE__ : "%s/%s:%u" format ,__FILE__,__FUNCTION__,  __LINE__)
+//#define UFBGC_COLORED_PRINT(color,format) color format ANSI_COLOR_RESET
+//#define UFBGC_COLORED_PRINT_DETAILED(color,format,rst) color "%s/%s:%u" format rst ,__FILE__, __FUNCTION__, __LINE__
 
-#define UFBGC_COLORED_PRINT(color,format) color "" format "" ANSI_COLOR_RESET
-#define UFBGC_COLORED_PRINT_DETAILED(color,format) color "%s/%s:%u" format "" ANSI_COLOR_RESET ,__FILE__,__FUNCTION__,  __LINE__
+#define ufbgc_print_red(fl,format,...)     fprintf(fl,UFBGC_COLOR_SANDWICH(fl==stdout,ANSI_COLOR_RED,format),##__VA_ARGS__)
+#define ufbgc_print_green(fl,format,...)   fprintf(fl,UFBGC_COLOR_SANDWICH(fl==stdout,ANSI_COLOR_GREEN,format),##__VA_ARGS__)
+#define ufbgc_print_blue(fl,format,...)    fprintf(fl,UFBGC_COLOR_SANDWICH(fl==stdout,ANSI_COLOR_BLUE ,format),##__VA_ARGS__)
+#define ufbgc_print_yellow(fl,format,...)  fprintf(fl,UFBGC_COLOR_SANDWICH(fl==stdout,ANSI_COLOR_YELLOW ,format),##__VA_ARGS__)
+#define ufbgc_print_cyan(fl,format,...)    fprintf(fl,UFBGC_COLOR_SANDWICH(fl==stdout,ANSI_COLOR_CYAN ,format),##__VA_ARGS__)
+#define ufbgc_print_white(fl,format,...)   fprintf(fl,UFBGC_COLOR_SANDWICH(fl==stdout,ANSI_COLOR_WHITE ,format),##__VA_ARGS__)
+#define ufbgc_print_magenta(fl,format,...) fprintf(fl,UFBGC_COLOR_SANDWICH(fl==stdout,ANSI_COLOR_MAGENTA ,format),##__VA_ARGS__)
+#define ufbgc_print_black(fl,format,...)   fprintf(fl,UFBGC_COLOR_SANDWICH(fl==stdout,ANSI_COLOR_BLACK ,format),##__VA_ARGS__)
+#define ufbgc_print_line(fl,color)         fprintf(fl,UFBGC_COLOR_SANDWICH(fl==stdout,color,"%s/%s:%u"),__FILE__,__FUNCTION__,__LINE__)
 
-
-#define ufbgc_print_red(format,...) printf(UFBGC_COLORED_PRINT(ANSI_COLOR_RED,format),##__VA_ARGS__)
-#define ufbgc_print_green(format,...) printf(UFBGC_COLORED_PRINT(ANSI_COLOR_GREEN,format),##__VA_ARGS__)
-#define ufbgc_print_blue(format,...) printf(UFBGC_COLORED_PRINT(ANSI_COLOR_BLUE,format),##__VA_ARGS__)
-#define ufbgc_print_yellow(format,...) printf(UFBGC_COLORED_PRINT(ANSI_COLOR_YELLOW,format),##__VA_ARGS__)
-#define ufbgc_print_cyan(format,...) printf(UFBGC_COLORED_PRINT(ANSI_COLOR_CYAN,format),##__VA_ARGS__)
-#define ufbgc_print_white(format,...) printf(UFBGC_COLORED_PRINT(ANSI_COLOR_WHITE,format),##__VA_ARGS__)
-#define ufbgc_print_magenta(format,...) printf(UFBGC_COLORED_PRINT(ANSI_COLOR_MAGENTA,format),##__VA_ARGS__)
-#define ufbgc_print_black(format,...) printf(UFBGC_COLORED_PRINT(ANSI_COLOR_BLACK,format),##__VA_ARGS__)
-
-
-#define ufbgc_print_line(color) printf(UFBGC_COLORED_PRINT_DETAILED(color,""))
-
-#define ufbgc_print_fail(name,format,...)               \
-    do{                                                 \
-        ufbgc_print_black(format,##__VA_ARGS__);        \
-        ufbgc_print_black("  -->  %s failed @[",name);  \
-        ufbgc_print_line(ANSI_COLOR_RED_UNDERLINE);     \
-        ufbgc_print_black("]\n");                       \
+#define ufbgc_print_fail(name,format,...)                   \
+    do{                                                     \
+        FILE * fl = ufbgc_get_current_test_file();          \
+        ufbgc_print_black(fl,format,##__VA_ARGS__);         \
+        ufbgc_print_black(fl,"  -->  %s failed @[",name);   \
+        ufbgc_print_line(fl,ANSI_COLOR_RED_UNDERLINE );     \
+        ufbgc_print_black(fl,"]\n");                        \
     }while(0)
 
 
-#define ufbgc_print_pass(name,format,...)               \
-    do{                                                 \
-        ufbgc_print_green(format,##__VA_ARGS__);        \
-        ufbgc_print_green("  -->  %s passed @[",name);  \
-        ufbgc_print_line(ANSI_COLOR_GREEN_UNDERLINE);   \
-        ufbgc_print_green("]\n");                       \
+#define ufbgc_print_pass(name,format,...)                   \
+    do{                                                     \
+        FILE * fl = ufbgc_get_current_test_file();          \
+        ufbgc_print_green(fl,format,##__VA_ARGS__);         \
+        ufbgc_print_green(fl,"  -->  %s passed @[",name);   \
+        ufbgc_print_line(fl,ANSI_COLOR_GREEN_UNDERLINE );   \
+        ufbgc_print_green(fl,"]\n");                        \
     }while(0)
 
 
-#if UFBGC_LOG_LEVEL>=UFBGC_LOG_LEVEL_INFO
-#define ufbgc_assert_full(type,condition,expected,should_return,format,...)     \
-    do{                                                                         \
-        if(__builtin_expect(condition,1) == expected){                          \
-            ufbgc_print_fail(type,"%s",#condition);                             \
-            if(strcmp(format,"")){                                              \
-                ufbgc_print_yellow("\nNote:{");                                 \
-                ufbgc_print_blue(format,##__VA_ARGS__);                         \
-                ufbgc_print_yellow("}\n\n");                                    \
-            }                                                                   \
-            if(should_return){return UFBGC_FAIL;}                               \
-        }                                                                       \
-        else{                                                                   \
-            ufbgc_print_pass(type,"%s",#condition);                             \
-        }                                                                       \
-    }while(0)
-#else
-#define ufbgc_assert_full(type,condition,expected,should_return,format,...)     \
-    do{                                                                         \
-        if(__builtin_expect(condition,1) == expected){                          \
-            ufbgc_print_fail(type,"%s",#condition);                             \
-            if(strcmp(format,"")){                                              \
-                ufbgc_print_yellow("\nNote:{");                                 \
-                ufbgc_print_blue(format,##__VA_ARGS__);                         \
-                ufbgc_print_yellow("}\n\n");                                    \
-            }                                                                   \
-            if(should_return){return UFBGC_FAIL;}                               \
-        }                                                                       \
-    }while(0)
-#endif
-
-
-#define __ufbgc_internal_assert_full(type,condition,expected,should_return,format,...)      \
-    do{                                                                                     \
-        if(__builtin_expect(condition,1) == expected){                                      \
-            ufbgc_print_fail(type,"%s ["format"]",#condition,##__VA_ARGS__);                \
-            if(should_return){return UFBGC_FAIL;}                                           \
-        }                                                                                   \
+#define ufbgc_assert_full(log_level,type,condition,expected,should_return,format,...)                           \
+    do{                                                                                                         \
+        FILE * fl = ufbgc_get_current_test_file();                                                              \
+        if(ufbgc_get_current_test_verbosity() >= log_level && __builtin_expect(condition,1) == expected){       \
+            ufbgc_print_fail(type,"%s",#condition);                                                             \
+            if(strcmp(format,"")){                                                                              \
+                ufbgc_print_yellow(fl,"\nNote:{");                                                              \
+                ufbgc_print_blue(fl,format,##__VA_ARGS__);                                                      \
+                ufbgc_print_yellow(fl,"}\n\n");                                                                 \
+            }                                                                                                   \
+            if(should_return){return UFBGC_FAIL;}                                                               \
+        }                                                                                                       \
+        else{                                                                                                   \
+            if(ufbgc_get_current_test_verbosity() >= UFBGC_LOG_INFO){                                           \
+                ufbgc_print_pass(type,"%s",#condition);                                                         \
+            }                                                                                                   \
+        }                                                                                                       \
     }while(0)
 
 
 
-#define ufbgc_assert(condition) ufbgc_assert_full("assert",condition,false,true,"")
-#define ufbgc_assert_true(condition) ufbgc_assert_full("assert",condition,false,true,"")
-#define ufbgc_assert_false(condition) ufbgc_assert_full("assert",condition,true,true,"")
-#define ufbgc_assert_(condition,format, ...) ufbgc_assert_full("assert",condition,false,true,format,##__VA_ARGS__)
-#define ufbgc_assert_true_(condition,format, ...) ufbgc_assert_full("assert",condition,false,true,format,##__VA_ARGS__)
-#define ufbgc_assert_false_(condition,format, ...) ufbgc_assert_full("assert",condition,true,true,format,##__VA_ARGS__)
+#define __ufbgc_internal_assert_full(type,condition,expected,should_return,format,...)          \
+    do{                                                                                         \
+        if(__builtin_expect(condition,1) == expected){                                          \
+            ufbgc_print_fail(type,"%s [" format "]",#condition,##__VA_ARGS__);                  \
+            if(should_return){return UFBGC_FAIL;}                                               \
+        }                                                                                       \
+    }while(0)
 
 
-#define ufbgc_likely(condition) ufbgc_assert_full("likely",condition,false,false,"")
-#define ufbgc_likely_(condition,format, ...) ufbgc_assert_full("likely",condition,false,false,format,##__VA_ARGS__)
-#define ufbgc_unlikely(condition) ufbgc_assert_full("unlikely",condition,true,false,"")
-#define ufbgc_unlikely_(condition,format, ...) ufbgc_assert_full("unlikely",condition,true,false,format,##__VA_ARGS__)
+
+#define ufbgc_assert(condition) ufbgc_assert_full(UFBGC_LOG_ERROR,"assert",condition,false,true,"")
+#define ufbgc_assert_true(condition) ufbgc_assert_full(UFBGC_LOG_ERROR,"assert",condition,false,true,"")
+#define ufbgc_assert_false(condition) ufbgc_assert_full(UFBGC_LOG_ERROR,"assert",condition,true,true,"")
+#define ufbgc_assert_(condition,format, ...) ufbgc_assert_full(UFBGC_LOG_ERROR,"assert",condition,false,true,format,##__VA_ARGS__)
+#define ufbgc_assert_true_(condition,format, ...) ufbgc_assert_full(UFBGC_LOG_ERROR,"assert",condition,false,true,format,##__VA_ARGS__)
+#define ufbgc_assert_false_(condition,format, ...) ufbgc_assert_full(UFBGC_LOG_ERROR,"assert",condition,true,true,format,##__VA_ARGS__)
+
+
+#define ufbgc_likely(condition) ufbgc_assert_full(UFBGC_LOG_WARNING,"likely",condition,false,false,"");
+#define ufbgc_likely_(condition,format, ...) ufbgc_assert_full(UFBGC_LOG_WARNING,"likely",condition,false,false,format,##__VA_ARGS__)
+#define ufbgc_unlikely(condition) ufbgc_assert_full(UFBGC_LOG_WARNING,"unlikely",condition,true,false,"")
+#define ufbgc_unlikely_(condition,format, ...) ufbgc_assert_full(UFBGC_LOG_WARNING,"unlikely",condition,true,false,format,##__VA_ARGS__)
 
 #define ufbgc_assert_op(a,op,b) ufbgc_assert(a op b)
 #define ufbgc_assert_eq(a,b) ufbgc_assert(a == b)
-#define ufbgc_assert_eqstr(a,b) ufbgc_assert_full("assert_eqstr",!strcmp(a,b),false,true,"")
-#define ufbgc_assert_eqmem(a,b,size) ufbgc_assert_full("assert_eqmem",!memcmp(a,b,size),false,true,"")
+#define ufbgc_assert_eqstr(a,b) ufbgc_assert_full(UFBGC_LOG_ERROR,"assert_eqstr",!strcmp(a,b),false,true,"")
+#define ufbgc_assert_eqmem(a,b,size) ufbgc_assert_full(UFBGC_LOG_ERROR,"assert_eqmem",!memcmp(a,b,size),false,true,"")
+
 
 #define __ufbgc_internal_assert(condition) __ufbgc_internal_assert_full("internal-assert",condition,false,true,"");
 #define __ufbgc_internal_assert_(condition,format, ...) __ufbgc_internal_assert_full("internal-assert",condition,false,true,format,##__VA_ARGS__);
 
-ufbgc_return_t ufbgc_start_test(const ufbgc_test_frame * const test_list);
-void * ufbgc_get_arg(const char * key);
-void * ufbgc_get_parameter(const char * key);
-bool get_current_test_iterator(size_t * it);
-
-#define ufbgc_get_param(buf, key, cast)                     \
-    do{                                                     \
-        size_t it = 0;                                      \
-        get_current_test_iterator(&it);                     \
-        void * p = ufbgc_get_parameter(key);                \
-        __ufbgc_internal_assert_(p != NULL,"No key found!");\
-        buf = ((cast) p)[it];                               \
+#define ufbgc_get_param(buf, key, cast)                         \
+    do{                                                         \
+        size_t it = 0;                                          \
+        ufbgc_get_current_test_iterator(&it);                   \
+        const void * p = ufbgc_get_parameter(key);              \
+        __ufbgc_internal_assert_(p != NULL,"No key found!");    \
+        buf = ((cast) p)[it];                                   \
     }while(0)
+
+
+
+
+//Time related
+void ufbgc_get_current_time(struct tm * dest);
+double ufbgc_get_execution_time(clock_t start);
+double ufbgc_get_execution_time_ms(clock_t start);
+double ufbgc_get_execution_time_us(clock_t start);
+
+
+
+#define UFBGC_TEST(test_function_name, _opt,_log,_output_file,_param,sf,tf,tdf)                         \
+    ufbgc_return_t test_function_name##_setup(ufbgc_test_parameters * parameters, void ** uarg)         \
+        {sf return UFBGC_OK;}                                                                           \
+    ufbgc_return_t test_function_name(ufbgc_test_parameters * parameters, void * uarg)                  \
+        {tf return UFBGC_OK;}                                                                           \
+    ufbgc_return_t test_function_name##_teardown(ufbgc_test_parameters * parameters, void * uarg)       \
+        {tdf return UFBGC_OK;}                                                                          \
+        const ufbgc_test_frame test_function_name##_frame = {                                           \
+        .test_f = test_function_name,                                                                   \
+        .name = #test_function_name,                                                                    \
+        .setup_f = test_function_name##_setup,                                                          \
+        .teardown_f = test_function_name##_teardown,                                                    \
+        .parameters = _param,                                                                           \
+        .option = _opt,                                                                                 \
+        .log_level = _log,                                                                              \
+        .output_file = _output_file};
+
+//Put a newline here to make compiler happy
