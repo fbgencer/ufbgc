@@ -1,3 +1,11 @@
+#ifndef UFBGC_HEADER_H
+#define UFBGC_HEADER_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #include "stdlib.h"
 #include "stdarg.h"
 #include "stdbool.h"
@@ -203,3 +211,10 @@ double ufbgc_get_execution_time_us(clock_t start);
         .output_file = _output_file};
 
 //Put a newline here to make compiler happy
+
+
+#ifdef  __cplusplus
+}
+#endif
+
+#endif
