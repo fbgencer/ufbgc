@@ -15,15 +15,32 @@ static internal_ufbgc_test_frame current_test_frame = {
     .output_file = NULL,
 };
 
-ufbgc_return_t ufbgc_start_test(const ufbgc_test_frame * test_list){
+ufbgc_return_t ufbgc_start_test(const ufbgc_test_frame * test_list, size_t list_len){
 
     ufbgc_print_magenta(stdout,"ufbgc - starting tests\n\n");
 
     __ufbgc_internal_assert_(test_list != NULL,"Test frame pointer is NULL");
+    __ufbgc_internal_assert_(list_len > 0,"Test list length must be bigger than zero");
 
     const ufbgc_test_frame * tframe = test_list;
 
-    while(tframe != NULL && tframe->test_f != NULL){
+    #ifdef UFBGC_PRINT_SUMMARY
+        typedef struct{
+            const ufbgc_test_frame * tframe;
+            ufbgc_return_t test_result;
+            double execution_time;
+        }test_summary;
+        test_summary * summary_list = (test_summary*) malloc(sizeof(test_summary) * list_len);
+    #endif
+    
+    for(size_t iter = 0; iter < list_len && tframe != NULL && tframe->test_f != NULL; ++iter){
+
+        #ifdef UFBGC_PRINT_SUMMARY
+            summary_list[iter].tframe = tframe;
+            summary_list[iter].test_result = UFBGC_FAIL;
+        #endif        
+        
+
         current_test_frame.frame = tframe;
 
         struct tm current_time;
@@ -38,7 +55,7 @@ ufbgc_return_t ufbgc_start_test(const ufbgc_test_frame * test_list){
         
 
         ufbgc_print_cyan(current_test_frame.output_file,"Starting test : '%s' @ %s",tframe->name ? tframe->name : "NULL" ,asctime(&current_time));
-        
+
 
         if(tframe->option == PASS_TEST){
             ufbgc_print_yellow(current_test_frame.output_file,"'%s'\t\t\t%-10s\n",tframe->name,"[PASS]");
@@ -58,12 +75,20 @@ ufbgc_return_t ufbgc_start_test(const ufbgc_test_frame * test_list){
                 }
 
                 current_test_frame.test_start = clock();
-                if(tframe->test_f(tframe->parameters,user_arg) == UFBGC_OK){
-                    ufbgc_print_green(current_test_frame.output_file,"'%s'\t\t\t%-10s %gms\n",tframe->name,"[OK]",ufbgc_get_execution_time_ms(current_test_frame.test_start));
+                ufbgc_return_t test_result = tframe->test_f(tframe->parameters,user_arg);
+                double execution_time = ufbgc_get_execution_time_ms(current_test_frame.test_start);
+                if(test_result == UFBGC_OK){
+
+                    ufbgc_print_green(current_test_frame.output_file,"'%s'\t\t\t%-10s %gms\n",tframe->name,"[OK]",execution_time);
                 }
                 else{
                     ufbgc_print_red(current_test_frame.output_file,"'%s'\t\t\t%-10s\n",tframe->name,"[FAILED]");
                 }
+
+                #ifdef UFBGC_PRINT_SUMMARY
+                    summary_list[iter].test_result = test_result;
+                    summary_list[iter].execution_time = execution_time;
+                #endif
                 
                 if(tframe->teardown_f != NULL){
                     tframe->teardown_f(tframe->parameters, user_arg);   
@@ -86,6 +111,30 @@ ufbgc_return_t ufbgc_start_test(const ufbgc_test_frame * test_list){
 
 
     ufbgc_print_magenta(stdout,"ufbgc - tests completed\n\n");
+
+    #ifdef UFBGC_PRINT_SUMMARY
+    ufbgc_print_magenta(stdout,"ufbgc - tests summary:\n");
+    for(size_t i = 0; i<list_len; ++i){
+        const ufbgc_test_frame * tframe = summary_list[i].tframe;
+        __ufbgc_internal_assert_(tframe != NULL,"Can't put summary! Test frame pointer is NULL");
+        size_t test_name_len = strlen(tframe->name);
+        size_t right_row = 50;
+        
+        if(tframe->option == PASS_TEST){
+            ufbgc_print_yellow(stdout,"'%s'%*s\n",tframe->name,right_row-test_name_len,"[PASS]");
+            continue;
+        }
+        if(summary_list[i].test_result == UFBGC_OK){
+            ufbgc_print_green(stdout,"'%s'%*s (%g ms)\n",tframe->name,right_row-test_name_len,"[OK]",summary_list[i].execution_time);
+        }
+        else{
+            ufbgc_print_red(stdout,"'%s'%*s\n",tframe->name,right_row-test_name_len,"[FAILED]");
+        }
+    }
+    free(summary_list);
+    #endif
+
+
     return UFBGC_OK;
 }
 
@@ -151,4 +200,10 @@ double ufbgc_get_execution_time_ms(clock_t start){
 }
 double ufbgc_get_execution_time_us(clock_t start){
     return (double)(clock() - start) / (CLOCKS_PER_SEC/1000000); 
+}
+
+
+int ufbgc_randint(int min, int max){
+	srand((int) clock() );
+    return rand()%(max-min + 1) + min;
 }

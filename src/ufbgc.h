@@ -33,8 +33,10 @@ extern "C" {
 #define ANSI_COLOR_CYAN_UNDERLINE     "\e[4;36m"
 #define ANSI_COLOR_WHITE_UNDERLINE    "\e[4;37m"
 
+#define UFBGC_PRINT_SUMMARY
+
 typedef enum {
-    UFBGC_OK,
+    UFBGC_OK = 0,
     UFBGC_FAIL
 }ufbgc_return_t;
 
@@ -76,7 +78,7 @@ typedef struct{
     const char * output_file;               //<! Output file name
 }ufbgc_test_frame;
 
-ufbgc_return_t ufbgc_start_test(const ufbgc_test_frame * test_list);
+ufbgc_return_t ufbgc_start_test(const ufbgc_test_frame * test_list, size_t list_len);
 const void * ufbgc_get_parameter(const char * key);
 bool ufbgc_get_current_test_iterator(size_t * it);
 
@@ -165,9 +167,19 @@ FILE * ufbgc_get_current_test_file();
 #define ufbgc_unlikely_(condition,format, ...) ufbgc_assert_full(UFBGC_LOG_WARNING,"unlikely",condition,true,false,format,##__VA_ARGS__)
 
 #define ufbgc_assert_op(a,op,b) ufbgc_assert(a op b)
+#define ufbgc_assert_op_(a,op,b,format,...) ufbgc_assert_(a op b,format,##__VA_ARGS__)
+
 #define ufbgc_assert_eq(a,b) ufbgc_assert(a == b)
+#define ufbgc_assert_eq_(a,b,format, ...) ufbgc_assert(a == b,format,##__VA_ARGS__)
+
 #define ufbgc_assert_eqstr(a,b) ufbgc_assert_full(UFBGC_LOG_ERROR,"assert_eqstr",!strcmp(a,b),false,true,"")
+#define ufbgc_assert_eqstr_(a,b,format, ...) ufbgc_assert_full(UFBGC_LOG_ERROR,"assert_eqstr",!strcmp(a,b),false,true,format,##__VA_ARGS__)
+
 #define ufbgc_assert_eqmem(a,b,size) ufbgc_assert_full(UFBGC_LOG_ERROR,"assert_eqmem",!memcmp(a,b,size),false,true,"")
+#define ufbgc_assert_eqmem_(a,b,size,format, ...) ufbgc_assert_full(UFBGC_LOG_ERROR,"assert_eqmem",!memcmp(a,b,size),false,true,format,##__VA_ARGS__)
+
+#define ufbgc_assert_null(a) ufbgc_assert(a != NULL)
+#define ufbgc_assert_null_(a,format,...) ufbgc_assert_(a != NULL,format,##__VA_ARGS__)
 
 
 #define __ufbgc_internal_assert(condition) __ufbgc_internal_assert_full("internal-assert",condition,false,true,"");
@@ -191,6 +203,9 @@ double ufbgc_get_execution_time(clock_t start);
 double ufbgc_get_execution_time_ms(clock_t start);
 double ufbgc_get_execution_time_us(clock_t start);
 
+//Random helpers
+int ufbgc_randint(int min, int max);
+
 
 
 #define UFBGC_TEST(test_function_name, _opt,_log,_output_file,_param,sf,tf,tdf)                         \
@@ -210,8 +225,24 @@ double ufbgc_get_execution_time_us(clock_t start);
         .log_level = _log,                                                                              \
         .output_file = _output_file};
 
-//Put a newline here to make compiler happy
 
+
+#define UFBGC_TEST_FRAME(test_function_name, _opt,_log,_output_file,_param)                             \
+    ufbgc_return_t test_function_name(ufbgc_test_parameters * parameters, void * uarg);                 \
+    ufbgc_return_t test_function_name##_setup(ufbgc_test_parameters * parameters, void ** uarg);        \
+    ufbgc_return_t test_function_name##_teardown(ufbgc_test_parameters * parameters, void * uarg);      \
+        const ufbgc_test_frame test_function_name##_frame = {                                           \
+        .test_f = test_function_name,                                                                   \
+        .name = #test_function_name,                                                                    \
+        .setup_f =  NULL,                                                                               \
+        .teardown_f = NULL,                                                                             \
+        .parameters = _param,                                                                           \
+        .option = _opt,                                                                                 \
+        .log_level = _log,                                                                              \
+        .output_file = _output_file}
+
+
+#define ufbgc_test_frame_array_length(test_list) (sizeof(test_list)/(sizeof(ufbgc_test_frame)))
 
 #ifdef  __cplusplus
 }

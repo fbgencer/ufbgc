@@ -265,7 +265,7 @@ ufbgc_test_frame test_list[] = {
 
 int main(int argc, char const *argv[]){
     
-    ufbgc_start_test(test_list);
+    ufbgc_start_test(test_list, ufbgc_test_frame_array_length(test_list));
 
     return 0;
 }
