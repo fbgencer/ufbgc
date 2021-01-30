@@ -17,8 +17,9 @@
 
 - **Assertion macros** 
 
-```C
+Typical assert macro starts with `ufbgc_assert`, basic assert macros takes only condition and required parameters and their name ends with no underscore such as `ufbgc_assert*`, on the other hand printable macros takes format string and variadic arguments to print if assertion fails and their generic name looks like `ufbgc_assert*_`
 
+```C
 //Assertions
 ufbgc_assert(condition) 	  			//checks condition == true, fails if condition == false
 ufbgc_assert_true(condition)  			//checks condition == true, fails if condition == false
@@ -39,6 +40,8 @@ ufbgc_assert_op(a,op,b) 		//Checks for condition a op b, e.g. a == b
 ufbgc_assert_eq(a,b)			//Same as ufbgc_assert(a == b)
 ufbgc_assert_eqstr(a,b) 		//String comparison, same as ufbgc_assert(!strcmp(a,b))
 ufbgc_assert_eqmem(a,b,size) 	//Block of memory comparison, same as ufbgc_assert(!memcmp(a,b,size))
+
+//All macros have their printable versions ufbgc_assert_*_(<required arguments>, format, ...)
 ```
 
 
@@ -61,6 +64,8 @@ ufbgc_return_t example_teardown_function(ufbgc_test_parameters * parameters, voi
 
 
 - **UFBGC_TEST macro**
+
+**Note that array and structure definition is not possible with UFBGC_TEST macro, compiler will complain because braces are used for function entries**
 
 ```c
 /*
@@ -99,6 +104,28 @@ UFBGC_TEST(Test2,NO_OPTION,UFBGC_LOG_WARNING,NULL,NULL,
 })
 ```
 
+- **UFBGC_TEST_FRAME macro**
+
+`UFBGC_TEST_FRAME` macro creates test frame structure with the given arguments.
+
+Also declares test function, setup function and tear-down function by the following names:
+  - test function : dummy_test,
+  - setup function : dummy_test_setup,
+  - teardown function : dummy_test_teardown,
+
+User needs to define these functions!
+
+```c
+UFBGC_TEST_FRAME(   dummy_test,             //Test function name
+                    NO_OPTION,              //Option of the test
+                    UFBGC_LOG_WARNING,      //Log level of the test
+                    "out.txt",              //Output file
+                    NULL,                   //ufbgc_test_parameters
+                );
+
+```
+This macro creates "const ufbgc_test_frame " variable with the given test name + _frame
+So for this case dummy_test_frame is created as const ufbgc_test_frame to provide to the test-suite
 
 
 - **User parameters and iterations**
@@ -234,15 +261,12 @@ ufbgc_test_frame test_list[] = {
         .parameters = &operator_test_param,
         .option = NO_OPTION,
         .log_level = UFBGC_LOG_INFO,        //Verbosity level set to UFBGC_LOG_INFO, so every information about test will be printed(even if assertion not fails) 
-    },
-    {
-        NULL //Last value of the test list must be NULL, so program will stop here
     }
-    ,
 };
 
 //To run the test-suite call the function
-ufbgc_start_test(test_list);
+//'ufbgc_test_frame_array_length' macro helps to calculate the element size inside provided test list
+ufbgc_start_test(test_list,ufbgc_test_frame_array_length(test_list));
 ```
 
 

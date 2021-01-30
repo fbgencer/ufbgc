@@ -256,11 +256,7 @@ ufbgc_test_frame test_list[] = {
         .parameters = &operator_test_param,
         .option = NO_OPTION,
         .log_level = UFBGC_LOG_INFO,        //Verbosity level set to UFBGC_LOG_INFO, so every information about test will be printed(even if assertion not fails) 
-    },
-    {
-        NULL //Last value of the test list must be NULL, so program will stop here
     }
-    ,
 };
 
 int main(int argc, char const *argv[]){
